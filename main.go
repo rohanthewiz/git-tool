@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"log"
 	"os/exec"
@@ -22,13 +24,14 @@ func main() {
 
 	wg := sync.WaitGroup{}
 	pastBranches := make([]string, 0, 16)
+	var err error
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-	    _, er := goGetPastBranches(pastBranches)
-	    if er != nil {
-	    	log.Println(er.Error())
+	    pastBranches, err = goGetPastBranches(pastBranches)
+	    if err != nil {
+	    	log.Println(err.Error())
 	    	return
 		}
 	}()
@@ -36,6 +39,7 @@ func main() {
 	// Entry
 	lbl := widget.NewLabel("Go back to branch")
 
+	wg.Wait()
 	// in := widget.NewEntry() // Text input
 	// in.SetPlaceHolder("Enter two decimal numbers...")
 	sel := widget.NewSelect(pastBranches,
@@ -65,35 +69,38 @@ func main() {
 		layout.NewSpacer(),
 		widget.NewSeparator(), result)
 
-	wg.Wait()
 	w.SetContent(con)
 	w.ShowAndRun()
 }
 
 func goGetPastBranches(branches []string) (brchs []string, err error) {
 	cmd := exec.Command("git", "reflog", "-30")
-	err = cmd.Start()
-	if err != nil {
-		err = errors.Wrap(err, "error executing git command")
-		return
-	}
 
-	log.Printf("Waiting for command to finish...")
-	err = cmd.Wait()
-	log.Printf("Command finished with error: %v", err)
-
-	// Parse output
+	// Run
 	bytOut, err := cmd.Output()
 	if err != nil {
 		return brchs, err
 	}
-	rg, err := regexp.Compile(`checkout: moving from (.+?) to`)
 	if err != nil {
-		return brchs, errors.Wrap(err, "failed to compile regex")
+		log.Printf("Command finished with error: %v", err)
+		return
 	}
-	matches := rg.FindStringSubmatch(string(bytOut))
-	if len(matches) > 0 {
-		fmt.Println(matches)
+	fmt.Println("->", string(bytOut))
+
+	scnr := bufio.NewScanner(bytes.NewReader(bytOut))
+	for scnr.Scan() {
+		// Parse output
+		rg, err := regexp.Compile(`checkout: moving from (.+?) to`)
+		if err != nil {
+			return brchs, errors.Wrap(err, "failed to compile regex")
+		}
+		matches := rg.FindStringSubmatch(scnr.Text())
+		if len(matches) > 1 {
+			// fmt.Printf("matches %#v\n", matches)
+			branches = append(branches, matches[1])
+		}
 	}
-	return
+
+	fmt.Printf("branches->%#v\n", branches)
+	return branches, nil
 }
