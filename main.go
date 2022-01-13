@@ -97,6 +97,7 @@ func goGetPastBranches(branches []string) (brchs []string, err error) {
 		matches := rg.FindStringSubmatch(scnr.Text())
 		if len(matches) > 1 {
 			// fmt.Printf("matches %#v\n", matches)
+			// TODO make sure branch unique -- use a set
 			branches = append(branches, matches[1])
 		}
 	}
