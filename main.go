@@ -29,45 +29,36 @@ func main() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-	    pastBranches, err = goGetPastBranches(pastBranches)
-	    if err != nil {
-	    	log.Println(err.Error())
-	    	return
+		pastBranches, err = goGetPastBranches(pastBranches)
+		if err != nil {
+			log.Println(err.Error())
+			return
 		}
 	}()
 
 	// Entry
 	lbl := widget.NewLabel("Go back to branch")
+	result := widget.NewMultiLineEntry()
 
 	wg.Wait()
-	// in := widget.NewEntry() // Text input
-	// in.SetPlaceHolder("Enter two decimal numbers...")
+
 	sel := widget.NewSelect(pastBranches,
 		func(val string) {
-			println(val, "selected")
-	})
-
-	result := widget.NewEntry()
-
-	// saveBtn := widget.NewButton("Save",
-	// 	func() {
-	// 		// Parse entry
-	// 		var a, b float64
-	// 		_, err := fmt.Sscanf(in.Text, "%f %f", &a, &b)
-	// 		if err != nil {
-	// 			log.Println("Error reading the input", err.Error())
-	// 			return
-	// 		}
-	// 		// Return the result
-	// 		sum := a + b
-	// 		result.SetText("> " + fmt.Sprintf("%0.1f", sum))
-	// 	})
+			cmd := exec.Command("git", "checkout", val)
+			by, err := cmd.Output()
+			if err != nil {
+				log.Println(err.Error())
+				return
+			}
+			log.Println("Checked out branch", val, "Cmdline resp:", string(by))
+			result.SetText("checked out branch " + val + "\n" + string(by))
+		})
 
 	con := container.NewVBox(
 		lbl, widget.NewSeparator(),
 		sel,
-		layout.NewSpacer(),
-		widget.NewSeparator(), result)
+		layout.NewSpacer(), result,
+		widget.NewSeparator())
 
 	w.SetContent(con)
 	w.ShowAndRun()
@@ -85,7 +76,9 @@ func goGetPastBranches(branches []string) (brchs []string, err error) {
 		log.Printf("Command finished with error: %v", err)
 		return
 	}
-	fmt.Println("->", string(bytOut))
+	fmt.Println("Reflog ->", string(bytOut))
+
+	uniqBranches := make(map[string]struct{}, 16)
 
 	scnr := bufio.NewScanner(bytes.NewReader(bytOut))
 	for scnr.Scan() {
@@ -97,11 +90,19 @@ func goGetPastBranches(branches []string) (brchs []string, err error) {
 		matches := rg.FindStringSubmatch(scnr.Text())
 		if len(matches) > 1 {
 			// fmt.Printf("matches %#v\n", matches)
-			// TODO make sure branch unique -- use a set
-			branches = append(branches, matches[1])
+			br := matches[1] // the capture group
+			// Validations
+			// Do we already have this branch in the map
+			if _, ok := uniqBranches[br]; ok {
+				continue
+			}
+			// Skip current -- TODO
+
+			uniqBranches[br] = struct{}{} // track
+			branches = append(branches, br)
 		}
 	}
 
-	fmt.Printf("branches->%#v\n", branches)
+	fmt.Printf("branches->%q\n", branches) // debug
 	return branches, nil
 }
