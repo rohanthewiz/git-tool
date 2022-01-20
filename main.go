@@ -17,6 +17,21 @@ import (
 	"github.com/pkg/errors"
 )
 
+type BranchBtn struct {
+	branch string
+	widget.Button
+}
+
+func NewBranchBtn(text, br string) *BranchBtn {
+	abtn := &BranchBtn{branch: br}
+	abtn.SetText(text)
+	abtn.ExtendBaseWidget(abtn)
+	abtn.OnTapped = func() {
+		checkoutBranch(abtn.branch)
+	}
+	return abtn
+}
+
 func main() {
 	myApp := app.New()
 	w := myApp.NewWindow("Entry Widget")
@@ -26,7 +41,7 @@ func main() {
 	pastBranches := make([]string, 0, 16)
 	var err error
 
-	wg.Add(1)
+	wg.Add(1) // checkout a goroutine
 	go func() {
 		defer wg.Done()
 		pastBranches, err = goGetPastBranches(pastBranches)
@@ -42,26 +57,41 @@ func main() {
 
 	wg.Wait()
 
-	sel := widget.NewSelect(pastBranches,
-		func(val string) {
-			cmd := exec.Command("git", "checkout", val)
-			by, err := cmd.Output()
-			if err != nil {
-				log.Println(err.Error())
-				return
-			}
-			log.Println("Checked out branch", val, "Cmdline resp:", string(by))
-			result.SetText("checked out branch " + val + "\n" + string(by))
-		})
+	var wgtPastBranches []fyne.CanvasObject
+
+	for _, br := range pastBranches {
+		btn := NewBranchBtn("...", br)
+
+		brRow := [3]fyne.CanvasObject{
+			btn,
+			widget.NewLabel(br),
+			widget.NewLabel("Branch info will go here"),
+		}
+		wgtPastBranches = append(wgtPastBranches, brRow[:]...)
+	}
+
+	brGrid := container.New(layout.NewGridLayout(3), wgtPastBranches...)
 
 	con := container.NewVBox(
 		lbl, widget.NewSeparator(),
-		sel,
+		brGrid,
 		layout.NewSpacer(), result,
 		widget.NewSeparator())
 
 	w.SetContent(con)
 	w.ShowAndRun()
+}
+
+func checkoutBranch(val string) (out string) {
+	cmd := exec.Command("git", "checkout", val)
+	by, err := cmd.Output()
+	if err != nil {
+		log.Println(err.Error())
+		return
+	}
+	log.Println("Checked out branch", val, "Cmdline resp:", string(by))
+	out = "checked out branch " + val + "\n" + string(by)
+	return
 }
 
 func goGetPastBranches(branches []string) (brchs []string, err error) {
@@ -96,13 +126,13 @@ func goGetPastBranches(branches []string) (brchs []string, err error) {
 			if _, ok := uniqBranches[br]; ok {
 				continue
 			}
-			// Skip current -- TODO
+			// TODO - Skip current and non-existent branches
 
 			uniqBranches[br] = struct{}{} // track
 			branches = append(branches, br)
 		}
 	}
 
-	fmt.Printf("branches->%q\n", branches) // debug
+	// fmt.Printf("branches->%q\n", branches) // debug
 	return branches, nil
 }
