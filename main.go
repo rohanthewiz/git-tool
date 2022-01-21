@@ -32,6 +32,7 @@ func main() {
 			return
 		}
 	}()
+
 	wg.Wait()
 
 	w := uibuilder.BuildWindow(currBranch, pastBranches)
