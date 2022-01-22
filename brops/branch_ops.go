@@ -3,14 +3,12 @@ package brops
 import (
 	"bufio"
 	"bytes"
-	"fmt"
 	"git-tool/command"
 	"log"
 	"os/exec"
 	"regexp"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/rohanthewiz/rerr"
 )
 
@@ -26,28 +24,23 @@ func CheckoutBranch(val string) (out string) {
 	return
 }
 
-func GetPastBranches(branches []string) (brchs []string, err error) {
-	cmd := exec.Command("git", "reflog", "-100")
+func GetPastBranches() (data interface{}, err error) {
+	var branches []string
 
-	// Run
+	cmd := exec.Command("git", "reflog", "-100")
 	bytOut, err := cmd.Output()
 	if err != nil {
-		return brchs, err
+		return branches, rerr.Wrap(err)
 	}
-	if err != nil {
-		log.Printf("Command finished with error: %v", err)
-		return
-	}
-	fmt.Println("Reflog ->", string(bytOut))
+	// fmt.Println("Reflog ->", string(bytOut))
 
 	uniqBranches := make(map[string]struct{}, 16)
-
 	scnr := bufio.NewScanner(bytes.NewReader(bytOut))
-	for scnr.Scan() {
-		// Parse output
+
+	for scnr.Scan() { // each line
 		rg, err := regexp.Compile(`checkout: moving from (.+?) to`)
 		if err != nil {
-			return brchs, errors.Wrap(err, "failed to compile regex")
+			return branches, rerr.Wrap(err, "failed to compile regex")
 		}
 		matches := rg.FindStringSubmatch(scnr.Text())
 		if len(matches) > 1 {
@@ -64,15 +57,14 @@ func GetPastBranches(branches []string) (brchs []string, err error) {
 			branches = append(branches, br)
 		}
 	}
-
 	// fmt.Printf("branches->%q\n", branches) // debug
-	return branches, nil
+	return branches, err
 }
 
-func GetCurrentBranch() (br string, err error) {
+func GetCurrentBranch() (data interface{}, err error) {
 	byts, err := command.ExecCmd("git", "symbolic-ref", "HEAD", "--short")
 	if err != nil {
-		return br, rerr.Wrap(err)
+		return data, rerr.Wrap(err)
 	}
 	return strings.TrimSpace(string(byts)), nil
 }

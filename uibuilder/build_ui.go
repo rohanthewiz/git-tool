@@ -1,32 +1,33 @@
 package uibuilder
 
 import (
-	"fmt"
 	"git-tool/brbtn"
-	"git-tool/ui_binds"
-	"log"
+	"git-tool/features"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
+	"github.com/rohanthewiz/rerr"
 )
 
 const winInitialWidth, winInitialHeight float32 = 500, 500
 
-func BuildWindow(currBranch string, pastBranches []string) fyne.Window {
+func BuildWindow() (fyne.Window, error) {
 	myApp := app.New()
 	w := myApp.NewWindow("Entry Widget")
 	w.Resize(fyne.Size{Width: winInitialWidth, Height: winInitialHeight})
 
-	lbl := widget.NewLabel("Local Branches ")
-
-	err := ui_binds.CurrentBranch.Set(fmt.Sprintf("(current: %s)", currBranch))
+	pastBranches, currBranch, err := features.GetBranchesInfo()
 	if err != nil {
-		log.Println("Error updating current branch in ui", err.Error())
+		return w, rerr.Wrap(err)
 	}
-	lbl2 := widget.NewLabelWithData(ui_binds.CurrentBranch)
+
+	conBranchTitle, err := buildBranchListTitle(currBranch)
+	if err != nil {
+		return w, rerr.Wrap(err)
+	}
 
 	result := widget.NewMultiLineEntry()
 
@@ -45,16 +46,16 @@ func BuildWindow(currBranch string, pastBranches []string) fyne.Window {
 
 	brGrid := container.New(layout.NewGridLayout(3), wgtPastBranches...)
 
-	vscon := container.NewVScroll(brGrid)
-	vscon.SetMinSize(fyne.Size{Width: winInitialWidth, Height: winInitialHeight * 0.75})
-	mcon := container.NewVBox(
-		lbl, lbl2,
+	vScroll := container.NewVScroll(brGrid)
+	vScroll.SetMinSize(fyne.Size{Width: winInitialWidth, Height: winInitialHeight * 0.75})
+	mainVB := container.NewVBox(
+		conBranchTitle,
 		widget.NewSeparator(),
-		vscon,
+		vScroll,
 		layout.NewSpacer(),
 		result,
 	)
 
-	w.SetContent(mcon)
-	return w
+	w.SetContent(mainVB)
+	return w, nil
 }

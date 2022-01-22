@@ -1,6 +1,6 @@
-package ui_binds
+package data_bindings
 
 import "fyne.io/fyne/v2/data/binding"
 
 var CurrentBranch = binding.NewString()
-var Results = binding.NewString() // TODO
+var CmdResp = binding.NewString()
