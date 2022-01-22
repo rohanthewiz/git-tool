@@ -27,7 +27,7 @@ func CheckoutBranch(val string) (out string) {
 func GetPastBranches() (data interface{}, err error) {
 	var branches []string
 
-	cmd := exec.Command("git", "reflog", "-100")
+	cmd := exec.Command("git", "reflog", "-200")
 	bytOut, err := cmd.Output()
 	if err != nil {
 		return branches, rerr.Wrap(err)

@@ -34,17 +34,16 @@ func BuildWindow() (fyne.Window, error) {
 	var wgtPastBranches []fyne.CanvasObject
 
 	for _, br := range pastBranches {
-		btn := brbtn.NewBranchBtn(" > ", br)
+		btn := brbtn.NewBranchBtn(br.BranchName, br.BranchName)
 
-		brRow := [3]fyne.CanvasObject{
+		brRow := [2]fyne.CanvasObject{
 			btn,
-			widget.NewLabel(br),
-			widget.NewLabel("Branch info will go here"),
+			widget.NewLabel(br.BranchDetails),
 		}
 		wgtPastBranches = append(wgtPastBranches, brRow[:]...)
 	}
 
-	brGrid := container.New(layout.NewGridLayout(3), wgtPastBranches...)
+	brGrid := container.New(layout.NewGridLayout(2), wgtPastBranches...)
 
 	vScroll := container.NewVScroll(brGrid)
 	vScroll.SetMinSize(fyne.Size{Width: winInitialWidth, Height: winInitialHeight * 0.75})
