@@ -3,7 +3,7 @@ package features
 import (
 	"fmt"
 	"git-tool/brops"
-	"git-tool/ui_binds"
+	"git-tool/data_bindings"
 	"log"
 
 	"github.com/rohanthewiz/rerr"
@@ -19,9 +19,9 @@ func CheckoutBranch(br string) {
 	if err != nil {
 		log.Println(rerr.StringFromErr(err))
 	} else {
-		br = brCurr
+		br = brCurr.(string)
 	}
-	err = ui_binds.CurrentBranch.Set(fmt.Sprintf("(current: %s)", br))
+	err = data_bindings.CurrentBranch.Set(fmt.Sprintf("(current: %s)", br))
 	if err != nil {
 		log.Println("Error updating current branch in ui", err.Error())
 	}
