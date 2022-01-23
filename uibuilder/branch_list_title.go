@@ -14,11 +14,12 @@ import (
 func buildBranchListTitle(currBranch string) (*fyne.Container, error) {
 	lbl := widget.NewLabel("Local Branches ")
 
-	err := data_bindings.CurrentBranch.Set(fmt.Sprintf("(current: %s)", currBranch))
+	err := data_bindings.CurrentBranch.Set(fmt.Sprintf("current: %s", currBranch))
 	if err != nil {
-		log.Println("Error updating current branch in ui", err.Error())
+		log.Println("Error setting data-binding for current br", err.Error())
 		return nil, rerr.Wrap(err)
 	}
+
 	lbl2 := widget.NewLabelWithData(data_bindings.CurrentBranch)
 
 	conBranchTitle := container.NewHBox(lbl, lbl2)

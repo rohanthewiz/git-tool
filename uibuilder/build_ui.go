@@ -2,6 +2,7 @@ package uibuilder
 
 import (
 	"git-tool/brbtn"
+	"git-tool/data_bindings"
 	"git-tool/features"
 
 	"fyne.io/fyne/v2"
@@ -29,7 +30,7 @@ func BuildWindow() (fyne.Window, error) {
 		return w, rerr.Wrap(err)
 	}
 
-	result := widget.NewMultiLineEntry()
+	result := widget.NewLabelWithData(data_bindings.CmdResp)
 
 	var wgtPastBranches []fyne.CanvasObject
 
