@@ -28,6 +28,7 @@ var headers = []string{"Name", "Type", "Color", "Weight"}
 
 func main() {
 	var bindings []binding.DataMap
+	// Create a binding for each animal
 	for i := 0; i < len(animals); i++ {
 		bindings = append(bindings, binding.BindStruct(&animals[i]))
 	}
@@ -38,7 +39,7 @@ func main() {
 	tbl := widget.NewTable(
 		// dimensions
 		func() (int, int) {
-			return len(animals) + 1, nbrAnimalAttrs
+			return len(animals) + 1, nbrAnimalAttrs // + 1 row for a hdr
 		},
 		// default
 		func() fyne.CanvasObject {
@@ -47,12 +48,11 @@ func main() {
 		},
 		// bindings
 		func(cell widget.TableCellID, co fyne.CanvasObject) {
-			// no binding --> co.(*widget.Label).SetText(data[i.Row][i.Col])
-			if cell.Row == 0 { // Header Row
+			// for no binding --> co.(*widget.Label).SetText(data[i.Row][i.Col])
+			if cell.Row == 0 { // header row
 				label := co.(*widget.Label)
 				label.Alignment = fyne.TextAlignCenter
 				label.TextStyle = fyne.TextStyle{Bold: true}
-				// label.Text =
 				label.SetText(headers[cell.Col])
 				return
 			}
@@ -99,6 +99,11 @@ func main() {
 
 func getTableDatum(cell widget.TableCellID, bindings []binding.DataMap,
 ) (datum binding.DataItem, err error) {
+	if cell.Row > len(bindings) { // hdr is extra row
+		msg := "No data binding for row"
+		log.Println(msg, cell.Row)
+		return datum, rerr.NewRErr(msg)
+	}
 	row := bindings[cell.Row-1] // first row is header
 	switch cell.Col {
 	case 0:
