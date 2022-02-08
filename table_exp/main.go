@@ -17,33 +17,58 @@ type Animal struct {
 	Name, Type, Color, Weight string
 }
 
-var animalFields = []string{
-	"Name", "Type", "Color", "Weight",
-}
-
-var headers = []string{"Name", "Type", "Color", "Weight"}
-
 var animals = []Animal{
 	{Name: "Frisky", Type: "cat", Color: "gray", Weight: "10"},
 	{Name: "Ella", Type: "dog", Color: "brown", Weight: "50"},
 	{Name: "Mickey", Type: "mouse", Color: "black", Weight: "1"},
 }
 
-func main() {
-	var bindings []binding.DataMap
+type ColAttr struct {
+	Name         string
+	Header       string
+	WidthPercent int
+}
 
-	// Create a binding for each animal data
+var animalCols = []ColAttr{
+	{Name: "Name", Header: "Name", WidthPercent: 100},
+	{Name: "Type", Header: "Type", WidthPercent: 67},
+	{Name: "Color", Header: "Color", WidthPercent: 100},
+	{Name: "Weight", Header: "Weight", WidthPercent: 67},
+}
+
+var animalBindings []binding.DataMap
+
+// Create a binding for each animal data
+func init() {
 	for i := 0; i < len(animals); i++ {
-		bindings = append(bindings, binding.BindStruct(&animals[i]))
+		animalBindings = append(animalBindings, binding.BindStruct(&animals[i]))
 	}
+}
 
+func main() {
 	ap := app.New()
 	wn := ap.NewWindow("Table Widget")
 
-	tbl := widget.NewTable(
-		// Dimensions
+	tbl := createTable(animalBindings)
+	setTblCellSelectHandler(tbl)
+
+	// Layout
+	refWidth := widget.NewLabel("establish width").MinSize().Width
+
+	for i := 0; i < len(animalCols); i++ {
+		tbl.SetColumnWidth(i, float32(animalCols[i].WidthPercent)/100.0*refWidth)
+	}
+
+	wn.SetContent(container.NewMax(tbl))
+	wn.Resize(fyne.Size{Width: 500, Height: 450})
+	wn.ShowAndRun()
+}
+
+func createTable(bndg []binding.DataMap) *widget.Table {
+	return widget.NewTable(
+		// Dimensions (rows, cols)
 		func() (int, int) {
-			return len(animals) + 1, len(animalFields) // + 1 row for a hdr
+			return len(animals) + 1, len(animalCols) // + 1 row for a hdr
 		},
 		// Default
 		func() fyne.CanvasObject {
@@ -56,29 +81,31 @@ func main() {
 				label := cnvObj.(*widget.Label)
 				label.Alignment = fyne.TextAlignCenter
 				label.TextStyle = fyne.TextStyle{Bold: true}
-				label.SetText(headers[cell.Col])
+				label.SetText(animalCols[cell.Col].Header)
 				return
 			}
 
-			datum, err := getTableDatum(cell, bindings)
+			datum, err := getTableDatum(cell, bndg)
 			if err != nil {
 				return
 			}
 			cnvObj.(*widget.Label).Bind(datum.(binding.String))
 		})
+}
 
-	// Handler
+func setTblCellSelectHandler(tbl *widget.Table) {
 	tbl.OnSelected = func(cell widget.TableCellID) {
-		if cell.Row == 0 && cell.Col >= 0 && cell.Col < len(headers) { // valid hdr cell
-			fmt.Println("-->", headers[cell.Col])
+		if cell.Row == 0 && cell.Col >= 0 && cell.Col < len(animalCols) { // valid hdr cell
+			fmt.Println("-->", animalCols[cell.Col].Header)
 			return
 		}
 
-		datum, err := getTableDatum(cell, bindings)
+		datum, err := getTableDatum(cell, animalBindings)
 		if err != nil {
 			log.Println(err)
 			return
 		}
+
 		str, er := datum.(binding.String).Get()
 		if er != nil {
 			log.Println(err)
@@ -86,17 +113,6 @@ func main() {
 		}
 		fmt.Println("-->", str)
 	}
-
-	// Layout
-	refWidth := widget.NewLabel("establish width").MinSize().Width
-	tbl.SetColumnWidth(0, refWidth)
-	tbl.SetColumnWidth(1, refWidth*2/3)
-	tbl.SetColumnWidth(2, refWidth)
-	tbl.SetColumnWidth(3, refWidth*2/3)
-
-	wn.SetContent(container.NewMax(tbl))
-	wn.Resize(fyne.Size{Width: 500, Height: 450})
-	wn.ShowAndRun()
 }
 
 func getTableDatum(cell widget.TableCellID, bindings []binding.DataMap,
@@ -107,14 +123,14 @@ func getTableDatum(cell widget.TableCellID, bindings []binding.DataMap,
 		log.Println(msg, cell.Row)
 		return datum, rerr.NewRErr(msg)
 	}
-	if cell.Col < 0 || cell.Col > len(animalFields)-1 {
+	if cell.Col < 0 || cell.Col > len(animalCols)-1 {
 		return datum, rerr.NewRErr(fmt.Sprintf("Column %d is out of bounds", cell.Col))
 	}
 
 	// Get the data binding for the row
 	bndg := bindings[cell.Row-1]
 
-	datum, err = bndg.GetItem(animalFields[cell.Col])
+	datum, err = bndg.GetItem(animalCols[cell.Col].Name)
 	if err != nil {
 		log.Println(rerr.StringFromErr(rerr.Wrap(err)))
 		return datum, rerr.Wrap(err)
