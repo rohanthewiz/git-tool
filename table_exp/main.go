@@ -64,6 +64,22 @@ func main() {
 	wn.ShowAndRun()
 }
 
+func setTblCellSelectHandler(tbl *widget.Table) {
+	tbl.OnSelected = func(cell widget.TableCellID) {
+		if cell.Row == 0 && cell.Col >= 0 && cell.Col < len(animalCols) { // valid hdr cell
+			fmt.Println("-->", animalCols[cell.Col].Header)
+			return
+		}
+
+		str, err := getStrCellValue(cell, animalBindings)
+		if err != nil {
+			fmt.Println(rerr.StringFromErr(err))
+			return
+		}
+		fmt.Println("-->", str)
+	}
+}
+
 func createTable(bndg []binding.DataMap) *widget.Table {
 	return widget.NewTable(
 		// Dimensions (rows, cols)
@@ -87,32 +103,24 @@ func createTable(bndg []binding.DataMap) *widget.Table {
 
 			datum, err := getTableDatum(cell, bndg)
 			if err != nil {
+				fmt.Println(rerr.StringFromErr(err))
 				return
 			}
 			cnvObj.(*widget.Label).Bind(datum.(binding.String))
 		})
 }
 
-func setTblCellSelectHandler(tbl *widget.Table) {
-	tbl.OnSelected = func(cell widget.TableCellID) {
-		if cell.Row == 0 && cell.Col >= 0 && cell.Col < len(animalCols) { // valid hdr cell
-			fmt.Println("-->", animalCols[cell.Col].Header)
-			return
-		}
-
-		datum, err := getTableDatum(cell, animalBindings)
-		if err != nil {
-			log.Println(err)
-			return
-		}
-
-		str, er := datum.(binding.String).Get()
-		if er != nil {
-			log.Println(err)
-			return
-		}
-		fmt.Println("-->", str)
+func getStrCellValue(cell widget.TableCellID, bdngs []binding.DataMap) (str string, err error) {
+	datum, err := getTableDatum(cell, bdngs)
+	if err != nil {
+		return str, rerr.Wrap(err)
 	}
+
+	str, err = datum.(binding.String).Get()
+	if err != nil {
+		return str, rerr.Wrap(err)
+	}
+	return
 }
 
 func getTableDatum(cell widget.TableCellID, bindings []binding.DataMap,
