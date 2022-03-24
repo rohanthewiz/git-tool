@@ -21,7 +21,7 @@ type BranchListItem struct {
 const regexBranchDetail = "^(\\*)? *(\\w+) +(\\w+) \\[(.*)\\] +(.*)$"
 const lenBranchDetailMatches = 6
 
-func GetBranchList() (data interface{}, err error) {
+func GetCurrentBranches() (data interface{}, err error) {
 	bytOut, err := command.ExecCmd("git", "branch", "-vv")
 	if err != nil {
 		return data, rerr.Wrap(err)

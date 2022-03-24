@@ -12,23 +12,19 @@ func GetBranchesInfo() (validPastBranches []brdata.Branch, currBranch string, er
 	brList := make([]brdata.Branch, 0, 32)
 	pastBranches := make([]string, 0, 32) // this, based on reflog, will establish the order
 
-	brListGIO := &system.GoRoutineIO{Fn: brops.GetBranchList}
+	currBrsGIO := &system.GoRoutineIO{Fn: brops.GetCurrentBranches}
 	pastBrsGIO := &system.GoRoutineIO{Fn: brops.GetPastBranches}
 	// currBrGIO := &system.GoRoutineIO{Fn: brops.GetCurrentBranch}
 
-	system.LaunchGoRoutines(brListGIO, pastBrsGIO) // , currBrGIO fire these in parallel
+	system.LaunchGoRoutines(currBrsGIO, pastBrsGIO) // , currBrGIO fire these in parallel
 
-	if brListGIO.Err == nil {
-		brList = brListGIO.ResultData.([]brdata.Branch)
+	if currBrsGIO.Err == nil {
+		brList = currBrsGIO.ResultData.([]brdata.Branch)
 	}
 
 	if pastBrsGIO.Err == nil {
 		pastBranches = pastBrsGIO.ResultData.([]string)
 	}
-
-	// if currBrGIO.Err == nil {
-	// 	currBranch = currBrGIO.ResultData.(string)
-	// }
 
 	// Collect only valid past branches into a map
 	validBranchInfos := make(map[string]brdata.Branch, 32)
